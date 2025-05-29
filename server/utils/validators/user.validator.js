@@ -1,4 +1,4 @@
-const { z } = require("zod");
+import { z } from "zod";
 
 const userValidator = z.object({
     email: z
@@ -8,4 +8,4 @@ const userValidator = z.object({
         .email({ message: "Invalid email address" })
         .toLowerCase(),
 });
-module.exports = userValidator;
+export default userValidator;

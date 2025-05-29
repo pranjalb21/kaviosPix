@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const imageSchema = new mongoose.Schema(
     {
@@ -10,6 +10,11 @@ const imageSchema = new mongoose.Schema(
         albumId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Album",
+            required: true,
+        },
+        ownerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
             required: true,
         },
         name: {
@@ -51,4 +56,4 @@ const imageSchema = new mongoose.Schema(
     }
 );
 const Image = mongoose.model("Image", imageSchema);
-module.exports = Image;
+export default Image;

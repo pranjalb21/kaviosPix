@@ -1,7 +1,10 @@
-const { nanoid } = require("nanoid");
-const Image = require("../models/image.model");
-const { v2 } = require("cloudinary");
-const imageValidator = require("../utils/validators/image.validator");
+import { nanoid } from "nanoid";
+import Image from "../models/image.model.js";
+import Album from "../models/album.model.js";
+import User from "../models/user.model.js";
+import { v2 } from "cloudinary";
+import imageValidator from "../utils/validators/image.validator.js";
+import { ZodError } from "zod";
 
 export const uploadImage = async (req, res) => {
     try {
@@ -40,11 +43,12 @@ export const uploadImage = async (req, res) => {
         const imageData = {
             imageUid,
             albumId: parsedBody.albumId,
-            name: uploadedFile.original_filename,
+            name: file.originalname,
             imageInfo: {
                 imageUrl: uploadedFile.secure_url,
                 public_id: uploadedFile.public_id,
             },
+            ownerId: "68367a00ad3d37126f41e843",
             tags: parsedBody.tags,
             personsTagged: parsedBody.personsTagged,
             isFavorite: parsedBody.isFavorite,
@@ -54,6 +58,7 @@ export const uploadImage = async (req, res) => {
 
         // Post image data into database and check if it's successfull
         const savedImage = await Image.create(imageData);
+        await savedImage.populate(["ownerId", "albumId", "personsTagged"]);
         if (!savedImage) {
             return res.status(400).json({ error: "Unable to post the image." });
         }
@@ -64,7 +69,9 @@ export const uploadImage = async (req, res) => {
     } catch (error) {
         // Check if any validation error received for zod validator
         if (error instanceof ZodError) {
-            const errorMessages = error.errors.map((err) => err.message);
+            const errorMessages = error.errors.map((err) => {
+                return err.message;
+            });
             console.error("Validation errors:", errorMessages);
             return res.status(400).json({ errors: errorMessages });
         }
@@ -131,10 +138,14 @@ export const updateImage = async (req, res) => {
         const { tags, personsTagged, isFavorite, comments, name, albumId } =
             req.body;
         let updatedData = {};
+
         if (albumId) updatedData.albumId = albumId;
         if (isFavorite !== undefined) updatedData.isFavorite = isFavorite;
         if (name) updatedData.name = name;
-        if (tags) updatedData.tags = tags;
+        if (tags) {
+            const lowerCasedTags = tags.map((tag) => tag.toLowerCase());
+            updatedData.tags = lowerCasedTags;
+        }
         if (personsTagged) updatedData.personsTagged = personsTagged;
         if (comments) updatedData.comments = comments;
 
@@ -151,13 +162,134 @@ export const updateImage = async (req, res) => {
                 .status(400)
                 .json({ error: "Unable to update the post." });
         }
-
+        await updatedImage.populate(["ownerId", "albumId", "personsTagged"]);
         res.status(200).json({
             message: "Post updated successfully.",
             data: updatedImage,
         });
     } catch (error) {
         console.log(`Error occurred while updating post: ${error.message}`);
+        res.status(500).json({ error: `Internal Server Error` });
+    }
+};
+
+export const getAllImages = async (req, res) => {
+    try {
+        // Fetch all the avaiable images from Database with reference populated fields
+        const images = await Image.find().populate([
+            "ownerId",
+            "albumId",
+            "personsTagged",
+        ]);
+        res.status(200).json({
+            message: "Posts fetched successfully.",
+            data: images,
+        });
+    } catch (error) {
+        console.log(
+            `Error occurred while fetching post: ${error.message}`,
+            error
+        );
+        res.status(500).json({ error: `Internal Server Error` });
+    }
+};
+
+export const getImageById = async (req, res) => {
+    try {
+        // Get image UID from params
+        const { imageUid } = req.params;
+
+        // Fetch the image with the UID from Database with reference populated fields
+        const image = await Image.findOne({ imageUid }).populate([
+            "ownerId",
+            "albumId",
+            "personsTagged",
+        ]);
+
+        // Check if image with the provided UID exists or not
+        if (!image) {
+            return res.status(404).json({ error: "Image not found." });
+        }
+
+        res.status(200).json({
+            message: "Post fetched successfully.",
+            data: image,
+        });
+    } catch (error) {
+        console.log(`Error occurred while fetching post: ${error.message}`);
+        res.status(500).json({ error: `Internal Server Error` });
+    }
+};
+
+export const getImagesByOwner = async (req, res) => {
+    try {
+        const { userUid } = req.params;
+        const owner = await User.findOne({ userUid });
+
+        if (!owner) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const images = await Image.find({ ownerId: owner._id }).populate([
+            "ownerId",
+            "albumId",
+            "personsTagged",
+        ]);
+
+        res.status(200).json({
+            message: "Post fetched successfully.",
+            data: images,
+        });
+    } catch (error) {
+        console.log(`Error occurred while fetching post: ${error.message}`);
+        res.status(500).json({ error: `Internal Server Error` });
+    }
+};
+export const getImagesBySharedOwner = async (req, res) => {
+    try {
+        const { userUid } = req.params;
+        const owner = await User.findOne({ userUid });
+
+        if (!owner) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const images = await Image.find({ personsTagged: {} }).populate([
+            "ownerId",
+            "albumId",
+            "personsTagged",
+        ]);
+
+        res.status(200).json({
+            message: "Post fetched successfully.",
+            data: images,
+        });
+    } catch (error) {
+        console.log(`Error occurred while fetching post: ${error.message}`);
+        res.status(500).json({ error: `Internal Server Error` });
+    }
+};
+
+export const getImagesByAlbum = async (req, res) => {
+    try {
+        const { albumUid } = req.params;
+        const album = await Album.findOne({ albumUid });
+
+        if (!album) {
+            return res.status(404).json({ error: "Album not found." });
+        }
+
+        const images = await Image.find({ albumId: album._id }).populate([
+            "ownerId",
+            "albumId",
+            "personsTagged",
+        ]);
+        res.status(200).json({
+            message: "Post fetched successfully.",
+            data: images,
+        });
+    } catch (error) {
+        console.log(`Error occurred while fetching post: ${error.message}`);
         res.status(500).json({ error: `Internal Server Error` });
     }
 };

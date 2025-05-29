@@ -1,6 +1,8 @@
-const { v2 } = require("cloudinary");
-const multer = require("multer");
-require("dotenv").config();
+import { v2 } from "cloudinary";
+import multer from "multer";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
 const api_key = process.env.CLOUDINARY_API_KEY;
@@ -14,4 +16,4 @@ v2.config({
 const storage = multer.diskStorage({});
 const upload = multer({ storage });
 
-module.exports = upload;
+export default upload;

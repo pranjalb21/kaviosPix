@@ -1,4 +1,4 @@
-const { z } = require("zod");
+import { z } from "zod";
 
 const albumValidator = z.object({
     name: z
@@ -19,4 +19,4 @@ const albumValidator = z.object({
         )
         .default([]),
 });
-module.exports = albumValidator;
+export default albumValidator;

@@ -1,11 +1,18 @@
-const { z } = require("zod");
+import { z } from "zod";
 
 const imageValidator = z.object({
     albumId: z
         .string({ required_error: "Album is required." })
         .trim()
         .regex(/^[a-fA-F0-9]{24}$/, "Invalid album"),
-    tags: z.array(z.string().trim()).default([]),
+    tags: z
+        .array(
+            z
+                .string()
+                .trim()
+                .transform((val) => val.toLowerCase())
+        )
+        .default([]),
     personsTagged: z
         .array(
             z
@@ -16,6 +23,5 @@ const imageValidator = z.object({
         .default([]),
     isFavorite: z.boolean().default(false),
     comments: z.array(z.string().trim()).default([]),
-    size: z.number(),
 });
-module.exports = imageValidator;
+export default imageValidator;
