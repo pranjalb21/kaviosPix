@@ -10,10 +10,12 @@ import {
     getImagesByOwner,
     getImagesByAlbum,
 } from "../apis/image.api.js";
+import { verifyJwt } from "../utils/auth/user.auth.js";
 
 const router = express.Router();
 
 router
+    .use(verifyJwt)
     .post("/", upload.single("image"), uploadImage)
     .delete("/:imageUid", deleteImage)
     .patch("/:imageUid", updateImage)
