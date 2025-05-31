@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken"
 export const verifyJwt = (req, res, next) => {
     try {
         // Extract token from cookies or Authorization header

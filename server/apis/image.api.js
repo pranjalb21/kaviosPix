@@ -39,6 +39,7 @@ export const uploadImage = async (req, res) => {
         // Generate unique imageUid using nanoid
         const imageUid = nanoid();
 
+        const user = await User.findOne({ userUid: req.user?.userUid });
         // Create imageData for uploading into Database
         const imageData = {
             imageUid,
@@ -48,7 +49,7 @@ export const uploadImage = async (req, res) => {
                 imageUrl: uploadedFile.secure_url,
                 public_id: uploadedFile.public_id,
             },
-            ownerId: "68367a00ad3d37126f41e843",
+            ownerId: user._id,
             tags: parsedBody.tags,
             personsTagged: parsedBody.personsTagged,
             isFavorite: parsedBody.isFavorite,
@@ -58,7 +59,11 @@ export const uploadImage = async (req, res) => {
 
         // Post image data into database and check if it's successfull
         const savedImage = await Image.create(imageData);
-        await savedImage.populate(["ownerId", "albumId", "personsTagged"]);
+        await savedImage.populate([
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
+        ]);
         if (!savedImage) {
             return res.status(400).json({ error: "Unable to post the image." });
         }
@@ -162,7 +167,11 @@ export const updateImage = async (req, res) => {
                 .status(400)
                 .json({ error: "Unable to update the post." });
         }
-        await updatedImage.populate(["ownerId", "albumId", "personsTagged"]);
+        await updatedImage.populate([
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
+        ]);
         res.status(200).json({
             message: "Post updated successfully.",
             data: updatedImage,
@@ -177,9 +186,9 @@ export const getAllImages = async (req, res) => {
     try {
         // Fetch all the avaiable images from Database with reference populated fields
         const images = await Image.find().populate([
-            "ownerId",
-            "albumId",
-            "personsTagged",
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
         ]);
         res.status(200).json({
             message: "Posts fetched successfully.",
@@ -201,9 +210,9 @@ export const getImageById = async (req, res) => {
 
         // Fetch the image with the UID from Database with reference populated fields
         const image = await Image.findOne({ imageUid }).populate([
-            "ownerId",
-            "albumId",
-            "personsTagged",
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
         ]);
 
         // Check if image with the provided UID exists or not
@@ -231,9 +240,9 @@ export const getImagesByOwner = async (req, res) => {
         }
 
         const images = await Image.find({ ownerId: owner._id }).populate([
-            "ownerId",
-            "albumId",
-            "personsTagged",
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
         ]);
 
         res.status(200).json({
@@ -255,9 +264,9 @@ export const getImagesBySharedOwner = async (req, res) => {
         }
 
         const images = await Image.find({ personsTagged: {} }).populate([
-            "ownerId",
-            "albumId",
-            "personsTagged",
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
         ]);
 
         res.status(200).json({
@@ -280,9 +289,9 @@ export const getImagesByAlbum = async (req, res) => {
         }
 
         const images = await Image.find({ albumId: album._id }).populate([
-            "ownerId",
-            "albumId",
-            "personsTagged",
+            { path: "ownerId", select: "userUid email" },
+            { path: "albumId" },
+            { path: "personsTagged", select: "userUid email" },
         ]);
         res.status(200).json({
             message: "Post fetched successfully.",
